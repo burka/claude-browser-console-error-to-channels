@@ -1,0 +1,68 @@
+{
+  "name": "claude-browser-console-error-to-channels",
+  "version": "0.1.0",
+  "description": "Vite plugin + MCP channel server that pushes browser console errors into a Claude Code session",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/plugin.d.mts",
+      "default": "./src/plugin.mjs"
+    },
+    "./client": {
+      "types": "./src/client.d.mts",
+      "default": "./src/client.mjs"
+    }
+  },
+  "bin": {
+    "claude-console-errors": "./src/server.mjs"
+  },
+  "files": [
+    "src/"
+  ],
+  "scripts": {
+    "dev": "vite --config example/vite.config.mjs example/",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "server": "node src/server.mjs",
+    "test": "node --test test/test.mjs",
+    "prepublishOnly": "biome check . && node --check src/server.mjs && node --check src/plugin.mjs && node --check src/client.mjs && node --check src/port-file.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  },
+  "peerDependencies": {
+    "vite": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "mcp",
+    "vite",
+    "console",
+    "errors",
+    "channels",
+    "developer-tools"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/burka/claude-browser-console-error-to-channels.git"
+  },
+  "author": "Florian Burka",
+  "homepage": "https://github.com/burka/claude-browser-console-error-to-channels#readme",
+  "bugs": {
+    "url": "https://github.com/burka/claude-browser-console-error-to-channels/issues"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@biomejs/biome": "2.4.8",
+    "vite": "^8.0.2"
+  }
+}

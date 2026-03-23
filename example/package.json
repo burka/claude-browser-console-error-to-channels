@@ -1,0 +1,11 @@
+{
+  "name": "example-console-errors",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite"
+  },
+  "devDependencies": {
+    "vite": "^8.0.1"
+  }
+}

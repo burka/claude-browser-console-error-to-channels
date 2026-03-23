@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>claude-browser-console-error — example</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        background: #0f1117;
+        color: #e2e8f0;
+        font-family: system-ui, -apple-system, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
+        padding: 2rem;
+      }
+
+      .header {
+        text-align: center;
+        max-width: 560px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: #f8fafc;
+      }
+
+      .subtitle {
+        font-size: 0.9rem;
+        color: #94a3b8;
+        line-height: 1.5;
+      }
+
+      /* --- connection status badge --- */
+      #connection {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.8rem;
+        font-family: ui-monospace, monospace;
+        background: #1e293b;
+        border: 1px solid #334155;
+        color: #94a3b8;
+        transition: border-color 0.3s, color 0.3s;
+      }
+
+      #connection.connected {
+        border-color: #22c55e44;
+        color: #86efac;
+      }
+
+      #connection.disconnected {
+        border-color: #ef444444;
+        color: #fca5a5;
+      }
+
+      #connection .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #64748b;
+        flex-shrink: 0;
+      }
+
+      #connection.connected .dot { background: #22c55e; }
+      #connection.disconnected .dot { background: #ef4444; }
+
+      .button-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 0.75rem;
+        width: 100%;
+        max-width: 640px;
+      }
+
+      button {
+        padding: 0.75rem 1.25rem;
+        border: 1px solid #334155;
+        border-radius: 0.5rem;
+        background: #1e293b;
+        color: #e2e8f0;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        text-align: left;
+        transition: background 0.15s, border-color 0.15s;
+      }
+
+      button:hover {
+        background: #273549;
+        border-color: #4f6282;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      button .label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: #f1f5f9;
+      }
+
+      button .description {
+        font-size: 0.8rem;
+        color: #64748b;
+      }
+
+      button.spam { border-color: #7c3aed44; }
+      button.spam:hover { background: #1e1b4b; border-color: #7c3aed; }
+
+      #status {
+        font-size: 0.8rem;
+        color: #64748b;
+        text-align: center;
+        height: 1.2em;
+        transition: color 0.3s;
+      }
+
+      #status.active { color: #a78bfa; }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>claude-browser-console-error</h1>
+      <p class="subtitle">
+        Click the buttons below to trigger different error types. Each one is
+        captured by the injected script and forwarded to your Claude Code
+        session via the MCP channel server.
+      </p>
+    </div>
+
+    <div id="connection">
+      <span class="dot"></span>
+      <span id="connection-text">checking channel server...</span>
+    </div>
+
+    <div class="button-grid">
+      <button id="btn-console-error">
+        <span class="label">1. Trigger console.error</span>
+        <span class="description">Calls console.error() with an Error object</span>
+      </button>
+
+      <button id="btn-uncaught">
+        <span class="label">2. Trigger uncaught error</span>
+        <span class="description">Accesses a property on undefined via setTimeout (window.onerror)</span>
+      </button>
+
+      <button id="btn-rejection">
+        <span class="label">3. Trigger unhandled rejection</span>
+        <span class="description">Calls Promise.reject() without a .catch()</span>
+      </button>
+
+      <button id="btn-report-api">
+        <span class="label">4. Report via API</span>
+        <span class="description">Calls reportToClaude() with a custom message</span>
+      </button>
+
+      <button id="btn-spam" class="spam">
+        <span class="label">5. Spam errors (30x/sec for 3s)</span>
+        <span class="description">Demonstrates batching and dedup — 90 errors arrive as one grouped notification</span>
+      </button>
+    </div>
+
+    <div id="status"></div>
+
+    <script type="module">
+      import { reportToClaude } from "../src/client.mjs";
+
+      // --- connection status ---------------------------------------------------
+      var connEl = document.getElementById("connection");
+      var connText = document.getElementById("connection-text");
+
+      if (window.__claudeConsole) {
+        connEl.className = "connected";
+        connText.textContent = "channel server connected";
+      } else {
+        connEl.className = "disconnected";
+        connText.textContent = "channel server not connected — errors won't reach Claude";
+      }
+
+      function setStatus(msg, active = false) {
+        var el = document.getElementById("status");
+        el.textContent = msg;
+        el.className = active ? "active" : "";
+      }
+
+      // --- error trigger buttons -----------------------------------------------
+      document.getElementById("btn-console-error").addEventListener("click", () => {
+        console.error("Example console.error:", new Error("Something went wrong in the component"));
+        setStatus("console.error fired");
+      });
+
+      document.getElementById("btn-uncaught").addEventListener("click", () => {
+        setTimeout(() => {
+          // eslint-disable-next-line no-undef
+          undefinedVariable.access;
+        }, 0);
+        setStatus("uncaught error queued (fires in next tick)");
+      });
+
+      document.getElementById("btn-rejection").addEventListener("click", () => {
+        Promise.reject(new Error("Async operation failed: network timeout"));
+        setStatus("unhandled rejection fired");
+      });
+
+      document.getElementById("btn-report-api").addEventListener("click", () => {
+        reportToClaude("Manual report from example app: checkout flow entered unexpected state", {
+          source: "example-app",
+        });
+        setStatus("reportToClaude() called");
+      });
+
+      document.getElementById("btn-spam").addEventListener("click", (e) => {
+        var btn = e.currentTarget;
+        btn.disabled = true;
+        var count = 0;
+        var total = 90; // 30/sec * 3s
+        var interval = setInterval(() => {
+          // Same message every time — demonstrates the "90x" dedup prefix
+          console.error("Repeated failure in render loop");
+          count++;
+          setStatus(`Spamming… ${count}/${total}`, true);
+          if (count >= total) {
+            clearInterval(interval);
+            btn.disabled = false;
+            setStatus(`Done — sent ${total} errors, watch Claude see them as "90x"`);
+          }
+        }, 1000 / 30);
+      });
+    </script>
+  </body>
+</html>

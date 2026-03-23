@@ -1,0 +1,9 @@
+node_modules/
+example/node_modules/
+*.tgz
+.env
+.env.*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
