@@ -127,6 +127,19 @@ Add to your project's `.mcp.json`:
 
 With npm you can also use `"command": "npx", "args": ["claude-console-errors"]`. The direct path is more reliable across package managers (pnpm, yarn).
 
+**pnpm users:** `npx` may not resolve the binary correctly. Use the direct Node path instead (shown above), or use `pnpm exec` as the command:
+
+```jsonc
+{
+  "mcpServers": {
+    "console-errors": {
+      "command": "pnpm",
+      "args": ["exec", "claude-console-errors"]
+    }
+  }
+}
+```
+
 ### 4. Start Claude Code
 
 During the [research preview](https://code.claude.com/docs/en/channels-reference#test-during-the-research-preview), custom channels require a flag:
@@ -158,7 +171,7 @@ Uncaught ReferenceError: fetchData is not defined
 
 ## Reporting from application code
 
-Beyond automatic error capture, you can report anything to Claude from your app code:
+Beyond automatic error capture, you can report anything to Claude from your app code using `reportToClaude()`:
 
 ```js
 import { reportToClaude } from 'claude-browser-console-error-to-channels/client'
@@ -181,11 +194,30 @@ componentDidCatch(error, info) {
 
 The import is safe to use unconditionally — it no-ops when the plugin isn't active (production builds, SSR, tests). The `source` option labels where the report came from; it defaults to `"app"`.
 
+This is particularly useful for:
+- **Feedback forms** — send user-reported bugs directly to Claude (e.g., in your feedback form submit handler)
+- **Caught exceptions** — forward handled errors that don't reach `console.error`
+- **Custom diagnostics** — report performance issues or unexpected state
+
+For example, in a feedback form:
+
+```js
+function onSubmitFeedback(message) {
+  reportToClaude(`Bug report — ${message}`, { source: 'feedback' })
+}
+```
+
 You can also use the global API directly without importing:
 
 ```js
 window.__claudeConsole?.report('something unexpected happened')
 window.__claudeConsole?.report(new Error('bad state'), { source: 'auth' })
+```
+
+For TypeScript users, import the global type augmentation to get autocompletion on `window.__claudeConsole`:
+
+```ts
+import 'claude-browser-console-error-to-channels/global'
 ```
 
 ## Security
