@@ -11,6 +11,10 @@
     "./client": {
       "types": "./src/client.d.mts",
       "default": "./src/client.mjs"
+    },
+    "./global": {
+      "types": "./src/global.d.mts",
+      "default": "./src/global.mjs"
     }
   },
   "bin": {
@@ -25,7 +29,7 @@
     "format": "biome check --write .",
     "server": "node src/server.mjs",
     "test": "node --test test/test.mjs",
-    "prepublishOnly": "biome check . && node --check src/server.mjs && node --check src/plugin.mjs && node --check src/client.mjs && node --check src/port-file.mjs"
+    "prepublishOnly": "biome check . && node --check src/server.mjs && node --check src/plugin.mjs && node --check src/client.mjs && node --check src/port-file.mjs && node --check src/global.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1"
