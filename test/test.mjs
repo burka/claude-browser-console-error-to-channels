@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdirSync, statSync, writeFileSync } from "node:fs";
+import { createServer as createHttpServer } from "node:http";
 import { platform, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { after, afterEach, before, describe, it } from "node:test";
@@ -1112,11 +1113,49 @@ describe("plugin.mjs", () => {
     assert.equal(typeof plugin.handleHotUpdate, "function");
   });
 
-  it("configureServer logs either info (found) or warn (not found) depending on environment", {
-    timeout: 5000,
+  it("configureServer discovers a running server and logs info", {
+    timeout: 10000,
   }, async () => {
     const { default: factory } = await import("../src/plugin.mjs");
-    const plugin = factory();
+    const cwd = scratchCwd("plugin-discover");
+    mkdirSync(cwd, { recursive: true });
+
+    const httpServer = createHttpServer((_req, res) => res.writeHead(200).end("ok"));
+    await new Promise((resolve) => httpServer.listen(0, "127.0.0.1", resolve));
+    const port = httpServer.address().port;
+
+    try {
+      writePortFile(port, generateToken(), cwd);
+      const plugin = factory({ cwd });
+      const logs = [];
+      const mockServer = {
+        config: {
+          logger: {
+            info: (msg) => logs.push({ level: "info", msg }),
+            warn: (msg) => logs.push({ level: "warn", msg }),
+          },
+        },
+      };
+      await plugin.configureServer(mockServer);
+      const infoLog = logs.find((l) => l.level === "info");
+      assert.ok(
+        infoLog?.msg.includes("discovered"),
+        `expected "discovered" in info log: "${infoLog?.msg}"`,
+      );
+    } finally {
+      await new Promise((resolve) => httpServer.close(resolve));
+      removePortFile(cwd);
+    }
+  });
+
+  it("configureServer logs warn when no server is found", {
+    timeout: 10000,
+  }, async () => {
+    const { default: factory } = await import("../src/plugin.mjs");
+    const cwd = scratchCwd("plugin-not-found");
+    mkdirSync(cwd, { recursive: true });
+
+    const plugin = factory({ cwd, discoveryAttempts: 1 });
     const logs = [];
     const mockServer = {
       config: {
@@ -1127,25 +1166,11 @@ describe("plugin.mjs", () => {
       },
     };
     await plugin.configureServer(mockServer);
-    // When no channel server is running, plugin logs a warn.
-    // When a channel server is already running (e.g. via Claude Code MCP), plugin logs info.
-    // Either way, at least one log entry must have been emitted.
-    assert.ok(logs.length > 0, "configureServer should log at least one message");
     const warnLog = logs.find((l) => l.level === "warn");
-    const infoLog = logs.find((l) => l.level === "info");
-    if (warnLog) {
-      // No server found path: message must include "not found"
-      assert.ok(
-        warnLog.msg.includes("not found"),
-        `expected "not found" in warning: "${warnLog.msg}"`,
-      );
-    } else {
-      // Server found path: info message must include "discovered"
-      assert.ok(
-        infoLog?.msg.includes("discovered"),
-        `expected "discovered" in info log: "${infoLog?.msg}"`,
-      );
-    }
+    assert.ok(
+      warnLog?.msg.includes("not found"),
+      `expected "not found" in warning: "${warnLog?.msg}"`,
+    );
   });
 
   it("transformIndexHtml returns empty array when not connected", async () => {

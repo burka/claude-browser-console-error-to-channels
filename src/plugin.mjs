@@ -20,7 +20,13 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export default function consoleErrorChannel() {
+export default function consoleErrorChannel(opts = {}) {
+  const {
+    cwd,
+    discoveryAttempts = DISCOVERY_ATTEMPTS,
+    discoveryIntervalMs = DISCOVERY_INTERVAL_MS,
+  } = opts;
+
   let endpoint = null;
   let token = null;
   let logger = null;
@@ -40,8 +46,8 @@ export default function consoleErrorChannel() {
       logger = server.config.logger;
 
       // The channel server may still be starting — retry a few times.
-      for (let i = 0; i < DISCOVERY_ATTEMPTS; i++) {
-        const info = readPortFile();
+      for (let i = 0; i < discoveryAttempts; i++) {
+        const info = cwd !== undefined ? readPortFile(cwd) : readPortFile();
         if (info) {
           endpoint = `http://127.0.0.1:${info.port}`;
           token = info.token;
@@ -59,7 +65,7 @@ export default function consoleErrorChannel() {
           }).catch(onFetchFail);
           return;
         }
-        if (i < DISCOVERY_ATTEMPTS - 1) await sleep(DISCOVERY_INTERVAL_MS);
+        if (i < discoveryAttempts - 1) await sleep(discoveryIntervalMs);
       }
       logger.warn(
         "[claude-console] channel server not found — plugin disabled.\n" +
