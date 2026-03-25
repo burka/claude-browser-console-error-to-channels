@@ -28,7 +28,11 @@ export function reportToClaude(messageOrError, opts) {
     typeof window.__claudeConsole.report === "function"
   ) {
     window.__claudeConsole.report(messageOrError, opts);
-  } else if (typeof window !== "undefined" && !_warnedOnce) {
+  } else if (
+    typeof window !== "undefined" &&
+    !_warnedOnce &&
+    !(typeof process !== "undefined" && process.env.NODE_ENV === "test")
+  ) {
     _warnedOnce = true;
     console.warn(
       "[claude-console] reportToClaude called but plugin is not active — call will be ignored",
