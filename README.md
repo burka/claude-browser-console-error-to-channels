@@ -125,7 +125,7 @@ Add to your project's `.mcp.json`:
 }
 ```
 
-Once the package is published to npm, you can use the shorter form: `"command": "npx", "args": ["claude-console-errors"]`
+With npm you can also use `"command": "npx", "args": ["claude-console-errors"]`. The direct path is more reliable across package managers (pnpm, yarn).
 
 ### 4. Start Claude Code
 
