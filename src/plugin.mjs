@@ -70,7 +70,8 @@ export default function consoleErrorChannel(opts = {}) {
       logger.warn(
         "[claude-console] channel server not found — plugin disabled.\n" +
           "  Ensure the console-errors MCP server is registered in .mcp.json\n" +
-          "  and Claude Code is running with --dangerously-load-development-channels server:console-errors",
+          "  and Claude Code is running with --dangerously-load-development-channels server:console-errors\n" +
+          "  See https://code.claude.com/docs/en/channels-reference",
       );
     },
 
